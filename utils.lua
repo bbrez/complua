@@ -26,15 +26,39 @@ function table.copy(t)
   return copy
 end
 
+---Verifica se uma tabela contem o elemento informado
+---@param table any
+---@param elem any
+---@return boolean
+function table.contains(table, elem)
+  for _, value in pairs(table) do
+    if value == elem then
+      return true
+    end
+  end
+  return false
+end
+
+---Imprime uma tabela, incluindo tabelas aninhadas
+---@param t table
+function table.dump(t)
+  if type(t) == 'table' then
+    local s = '{ '
+    for k, v in pairs(t) do
+      if type(k) ~= 'number' then k = '"' .. k .. '"' end
+      s = s .. '[' .. k .. '] = ' .. table.dump(v) .. ', '
+    end
+    return s .. ' }'
+  else
+    return tostring(t)
+  end
+end
+
 ---Lê um arquivo fonte completo e retorna o texto como string
 ---@param filename string
 ---@return string?
 function utils.read_source(filename)
-  local f = io.open(filename, 'r')
-  if not f then
-    return nil
-  end
-
+  local f <close> = assert(io.open(filename, 'r'))
   local source = f:read('*a')
   f:close()
   return source

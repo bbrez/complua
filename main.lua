@@ -1,11 +1,34 @@
 local lexer = require('lexer')
+local parser = require('parser')
 local utils = require('utils')
 
-local source = utils.read_source('test.c')
-assert(source ~= nil, 'Erro lendo arquivo fonte')
-local tokens = lexer.lex(source)
-
-for _, token in pairs(tokens) do
-  -- print(key, value.type, value.value, value.position.line, value.position.col)
-  lexer.print_token(token)
+-- get files from args
+local files = {}
+for i = 1, #arg do
+  files[i] = arg[i]
 end
+
+for _, file in pairs(files) do
+  print('File:', file)
+
+  local source = utils.read_source(file)
+  assert(source ~= nil, 'Erro lendo arquivo fonte')
+
+  local symbols, tokens = lexer.lex(source)
+
+  print('Symbols:')
+  for symbol, _ in pairs(symbols) do
+    print('| ' .. symbol)
+  end
+
+  print('Token list:')
+  for _, token in pairs(tokens) do
+    -- print(key, value.type, value.value, value.position.line, value.position.col)
+    lexer.print_token(token)
+  end
+
+  local ast = parser.parse(tokens)
+  print('AST:')
+  print(table.dump(ast))
+end
+
