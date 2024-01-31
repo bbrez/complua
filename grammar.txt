@@ -18,7 +18,7 @@ compound_statement ::= '{' statement_list '}'
 
 statement_list ::= statement | statement_list statement
 
-statement ::= expression_statement | return_statement | compound_statement
+statement ::= expression_statement | return_statement | compound_statement | variable_declaration
 
 expression_statement ::= expression ';'
 
