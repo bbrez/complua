@@ -27,8 +27,11 @@ for _, file in pairs(files) do
     lexer.print_token(token)
   end
 
-  local ast = parser.parse(tokens)
-  print('AST:')
-  print(table.dump(ast))
+  local result = parser.parse(tokens)
+  if result then
+    print('Programa válido')
+  else
+    print('Programa inválido')
+  end
 end
 

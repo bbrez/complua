@@ -148,12 +148,14 @@ function lexer.lex(source)
   local tokens = {}
 
   ---@type LexerState
-  local state = { source = source, offset = 0, position = { line = 1, col = 1 }, identifiers = {} }
+  local state = { source = source, offset = 1, position = { line = 1, col = 1 }, identifiers = {} }
   while state.offset < #state.source do
     local current = state.source:sub(state.offset, state.offset)
-    print('current: ' .. current)
+    if not string.is_blank(current) then
+      print('current: ' .. current)
+    end
 
-    if current == ' ' or current == '\t' then
+    if current == ' ' or current == '\t' or current == '\r' then
       state = advance(state)
     elseif current == '\n' then
       state = advance_line(state)
@@ -172,6 +174,18 @@ function lexer.lex(source)
     elseif current == ';' then
       table.insert(tokens, { type = 'semicolon', value = ';', position = table.copy(state.position) })
       state = advance(state)
+    elseif current == '+' then
+      table.insert(tokens, { type = 'plus', value = '+', position = table.copy(state.position) })
+      state = advance(state)
+    elseif current == '-' then
+      table.insert(tokens, { type = 'minus', value = '-', position = table.copy(state.position) })
+      state = advance(state)
+    elseif current == '*' then
+      table.insert(tokens, { type = 'times', value = '*', position = table.copy(state.position) })
+      state = advance(state)
+    elseif current == '/' then
+      table.insert(tokens, { type = 'div', value = '/', position = table.copy(state.position) })
+      state = advance(state)
     elseif utils.is_number(current) then
       local num
       state, num = lex_number(state)
@@ -181,12 +195,11 @@ function lexer.lex(source)
       state, ident = lex_identifier(state)
       table.insert(tokens, ident)
     else
-      print('mystery token')
+      print('mystery token "' .. current .. '"')
       state = advance(state)
     end
   end
 
-  table.insert(tokens, { type = "eof", value = "eof", position = table.copy(state.position) })
   return state.identifiers, tokens
 end
 

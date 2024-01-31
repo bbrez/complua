@@ -39,6 +39,29 @@ function table.contains(table, elem)
   return false
 end
 
+---Compara os valores de dois objetos, recursivamente
+---@param t1 table|any
+---@param t2 table|any
+function table.compare(t1, t2)
+  if type(t1) ~= 'table' or type(t2) ~= 'table' then
+    return t1 == t2
+  end
+
+  for k, v in pairs(t1) do
+    if not table.compare(v, t2[k]) then
+      return false
+    end
+  end
+
+  for k, v in pairs(t2) do
+    if not table.compare(v, t1[k]) then
+      return false
+    end
+  end
+
+  return true
+end
+
 ---Imprime uma tabela, incluindo tabelas aninhadas
 ---@param t table
 function table.dump(t)
@@ -52,6 +75,10 @@ function table.dump(t)
   else
     return tostring(t)
   end
+end
+
+function string.is_blank(str)
+  return str == nil or str:match('^%s*$') ~= nil
 end
 
 ---Lê um arquivo fonte completo e retorna o texto como string
