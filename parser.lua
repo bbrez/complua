@@ -156,11 +156,42 @@ function parser.parse(tokens)
     return { type = 'variable_declaration', type_specifier = type_specifier, identifier = identifier }
   end
 
-  ---parameter_list ::= type_specifier identifier | parameter_list ',' parameter
+  ---parameter ::= type_specifier identifier
+  local parse_parameter = function()
+    local type_specifier = parse_type_specifier()
+    if not type_specifier then
+      return nil
+    end
+
+    local identifier = expect('identifier')
+    if not identifier then
+      return nil
+    end
+
+    return { type = 'parameter', type_specifier = type_specifier, identifier = identifier }
+  end
+
+  ---parameter_list ::= parameter | parameter_list ',' parameter
   ---@return table
   local parse_parameter_list = function()
-    -- # TODO: implementar
-    return { type = 'parameter_list', parameters = {} }
+    local parameters = {}
+
+    while true do
+      local current_token = get_current_token()
+
+      if not current_token then
+        break
+      end
+
+      local parameter = parse_parameter()
+      table.insert(parameters, parameter)
+
+      if not expect('comma') then
+        break
+      end
+    end
+
+    return { type = 'parameter_list', parameters = parameters }
   end
 
   ---compound_statement ::= '{' statement_list '}'
@@ -190,7 +221,7 @@ function parser.parse(tokens)
     return { type = 'compound_statement', statements = statements }
   end
 
-  ---function_declaration ::= type_specifier identifier '(' parameter_list ')' compound_statement
+  ---function_declaration ::= type_specifier identifier '(' [parameter_list] ')' compound_statement
   ---@return nil
   local parse_function_declaration = function()
     local type_specifier = parse_type_specifier()

@@ -8,7 +8,7 @@ declaration ::= variable_declaration | function_declaration
 
 variable_declaration ::= type_specifier identifier ';'
 
-function_declaration ::= type_specifier identifier '(' parameter_list ')' compound_statement
+function_declaration ::= type_specifier identifier '(' [parameter_list] ')' compound_statement
 
 parameter_list ::= parameter | parameter_list ',' parameter
 
