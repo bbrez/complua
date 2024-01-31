@@ -5,6 +5,14 @@ local lexer = {}
 ---@class Position
 ---@field line number
 ---@field col number
+lexer.position = {}
+
+---Converte uma posição para string
+---@param position Position
+---@return string
+function lexer.position.to_string(position)
+  return position.line .. ':' .. position.col
+end
 
 ---@class LexerState
 ---@field source string
@@ -31,6 +39,7 @@ local lexer = {}
 
 lexer.keywords = {
   "int",
+  "float",
   "return"
 }
 
@@ -64,6 +73,7 @@ end
 
 ---Verifica se a string provida é uma palavra reservada da linguagem
 ---@param str string
+---@return boolean
 function lexer.is_keyword(str)
   for _, keyword in ipairs(lexer.keywords) do
     if str == keyword then
@@ -73,9 +83,12 @@ function lexer.is_keyword(str)
   return false
 end
 
-function lexer.is_type_keyword(str)
+---Verifica se a string provida é um especificador de tipo
+---@param str string
+---@return boolean
+function lexer.is_type_specifier(str)
   if lexer.is_keyword(str) then
-    if str == 'int' then return true end
+    return table.contains({ 'int', 'float' }, str)
   end
   return false
 end
@@ -151,9 +164,6 @@ function lexer.lex(source)
   local state = { source = source, offset = 1, position = { line = 1, col = 1 }, identifiers = {} }
   while state.offset < #state.source do
     local current = state.source:sub(state.offset, state.offset)
-    if not string.is_blank(current) then
-      print('current: ' .. current)
-    end
 
     if current == ' ' or current == '\t' or current == '\r' then
       state = advance(state)
@@ -195,8 +205,7 @@ function lexer.lex(source)
       state, ident = lex_identifier(state)
       table.insert(tokens, ident)
     else
-      print('mystery token "' .. current .. '"')
-      state = advance(state)
+      error('unknown token "' .. current .. '"')
     end
   end
 
