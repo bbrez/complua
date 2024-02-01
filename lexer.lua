@@ -52,15 +52,6 @@ local function advance(state)
   return state
 end
 
----Retrocede o estado em um
----@param state LexerState
----@return LexerState
-local function rewind(state)
-  state.offset = state.offset - 1
-  state.position.col = state.position.col - 1
-  return state
-end
-
 ---Avança o estado em uma linha
 ---@param state LexerState
 ---@return LexerState

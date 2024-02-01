@@ -2,8 +2,9 @@ local lexer = require('lexer')
 local parser = require('parser')
 
 local source = [[
-    int test;
-    float test2;
+    int main() {
+        return 0;
+    }
 ]]
 
 local identifiers, tokens = lexer.lex(source)
