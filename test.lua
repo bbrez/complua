@@ -9,10 +9,14 @@ local source = [[
 
 local identifiers, tokens = lexer.lex(source)
 print('Symbols:')
-print(table.dump(identifiers))
+print(table.to_json(identifiers))
 print('Token list:')
-print(table.dump(tokens))
-local expression = parser.parse(tokens)
+print(table.to_json(tokens))
+local program = parser.parse(tokens)
 
-print('Expression:')
-print(table.dump(expression))
+print('Program:')
+if not program then
+    print('Erro de sintaxe')
+else
+    print(table.to_json(program))
+end

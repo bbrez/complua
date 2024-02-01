@@ -64,19 +64,28 @@ function table.compare(t1, t2)
   return true
 end
 
----Imprime uma tabela, incluindo tabelas aninhadas
+---Converte uma tabela para uma string JSON
 ---@param t table
-function table.dump(t)
-  if type(t) == 'table' then
-    local s = '{ '
-    for k, v in pairs(t) do
-      if type(k) ~= 'number' then k = '"' .. k .. '"' end
-      s = s .. '[' .. k .. '] = ' .. table.dump(v) .. ', '
+function table.to_json(t)
+  ---Função auxiliar para converter uma tabela para JSON
+  ---@param v table
+  ---@param depth number
+  function aux(v, depth)
+    local indent = string.rep('  ', depth)
+    if type(v) == 'table' then
+      local result = '{\n'
+      for k, v in pairs(v) do
+        result = result .. indent .. '  ' .. k .. ': ' .. aux(v, depth + 1) .. ',\n'
+      end
+      return result .. indent .. '}'
+    elseif type(v) == 'string' then
+      return '"' .. v .. '"'
+    else
+      return tostring(v)
     end
-    return s .. ' }'
-  else
-    return tostring(t)
   end
+
+  return aux(t, 0)
 end
 
 ---Aplica uma função a cada elemento de uma tabela

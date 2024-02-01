@@ -11,6 +11,7 @@ local parser = {}
 ---Retorna o token atual do parser
 ---@param state ParserState
 ---@return Token
+---@nodiscard
 local function get_current_token(state)
   return state.tokens[state.index]
 end
@@ -18,15 +19,18 @@ end
 ---Consome o token atual do parser
 ---@param state ParserState
 ---@return ParserState
+---@nodiscard
 local function consume_token(state)
-  state.index = state.index + 1
-  return state
+  local new_state = table.copy(state)
+  new_state.index = new_state.index + 1
+  return new_state
 end
 
 ---Consome e retorna o token atual se ele for do tipo esperado
 ---@param state ParserState
 ---@param type TokenType
 ---@return ParserState, Token?
+---@nodiscard
 local function expect(state, type)
   local current_token = get_current_token(state)
 
@@ -45,6 +49,7 @@ end
 ---literal ::= int_literal | float_literal
 ---@param state ParserState
 ---@return ParserState, ASTNode?
+---@nodiscard
 local function parse_literal(state)
   local new_state, int_literal = expect(state, 'int_literal')
   if int_literal then
@@ -69,6 +74,7 @@ end
 ---factor ::= identifier | literal | '(' expression ')'
 ---@param state ParserState
 ---@return ParserState, ASTNode?
+---@nodiscard
 local function parse_factor(state)
   local new_state, identifier = expect(state, 'identifier')
   if identifier then
@@ -110,6 +116,7 @@ end
 ---term ::= factor | term '*' factor | term '/' factor
 ---@param state ParserState
 ---@return ParserState, ASTNode?
+---@nodiscard
 local function parse_term(state)
   local new_state, factor = parse_factor(state)
 
@@ -137,6 +144,7 @@ end
 ---expression ::= term | expression '+' term | expression '-' term
 ---@param state ParserState
 ---@return ParserState, ASTNode?
+---@nodiscard
 local function parse_expression(state)
   local new_state, term = parse_term(state)
 
@@ -164,6 +172,7 @@ end
 ---type_specifier ::= 'int' | 'float'
 ---@param state any
 ---@return ParserState, ASTNode?
+---@nodiscard
 local function parse_type_specifier(state)
   local new_state, type_specifier = expect(state, 'keyword')
 
@@ -180,6 +189,7 @@ end
 ---variable_declaration ::= type_specifier identifier ';'
 ---@param state ParserState
 ---@return ParserState, ASTNode?
+---@nodiscard
 local function parse_variable_declaration(state)
   local new_state, type_specifier = parse_type_specifier(state)
   if not type_specifier then
@@ -208,6 +218,7 @@ end
 ---expression_statement ::= expression ';'
 ---@param state ParserState
 ---@return ParserState, ASTNode?
+---@nodiscard
 local function parse_expression_statement(state)
   local new_state, expression = parse_expression(state)
   if not expression then
@@ -226,6 +237,7 @@ end
 ---return_statement ::= 'return' expression ';'
 ---@param state ParserState
 ---@return ParserState, ASTNode?
+---@nodiscard
 local function parse_return_statement(state)
   local new_state, return_keyword = expect(state, 'keyword')
   if not return_keyword or return_keyword.value ~= 'return' then
@@ -253,6 +265,7 @@ end
 ---statement ::= expression_statement | return_statement | variable_declaration
 ---@param state ParserState
 ---@return ParserState, ASTNode?
+---@nodiscard
 local function parse_statement(state)
   local new_state, expression_statement = parse_expression_statement(state)
   if expression_statement then
@@ -277,13 +290,14 @@ end
 ---statement_list ::= statement | statement_list statement
 ---@param state ParserState
 ---@return ParserState, ASTNode
+---@nodiscard
 local function parse_statement_list(state)
   local statements = {}
 
   while true do
     local current_token = get_current_token(state)
 
-    if not current_token then
+    if not current_token or current_token.value == '}' then
       break
     end
 
@@ -301,6 +315,7 @@ end
 ---compound_statement ::= '{' statement_list '}'
 ---@param state ParserState
 ---@return ParserState, ASTNode?
+---@nodiscard
 local function parse_compound_statement(state)
   local new_state, left_brace = expect(state, 'lbrace')
   if not left_brace then
@@ -326,6 +341,7 @@ end
 ---parameter ::= type_specifier identifier
 ---@param state ParserState
 ---@return ParserState, ASTNode?
+---@nodiscard
 local function parse_parameter(state)
   local new_state, type_specifier = parse_type_specifier(state)
   if not type_specifier then
@@ -348,13 +364,14 @@ end
 ---parameter_list ::= parameter | parameter_list ',' parameter
 ---@param state ParserState
 ---@return ParserState, ASTNode
+---@nodiscard
 local function parse_parameter_list(state)
   local parameters = {}
 
   while true do
     local current_token = get_current_token(state)
 
-    if not current_token then
+    if not current_token or not lexer.is_type_specifier(current_token.value) then
       break
     end
 
@@ -372,6 +389,7 @@ end
 ---function_declaration ::= type_specifier identifier '(' [parameter_list] ')' compound_statement
 ---@param state ParserState
 ---@return ParserState, ASTNode?
+---@nodiscard
 local function parse_function_declaration(state)
   local new_state, type_specifier = parse_type_specifier(state)
 
@@ -418,6 +436,7 @@ end
 ---declaration ::= variable_declaration | function_declaration
 ---@param state ParserState
 ---@return ParserState, ASTNode?
+---@nodiscard
 local function parse_declaration(state)
   local new_state, variable_declaration = parse_variable_declaration(state)
   if variable_declaration then
@@ -436,6 +455,7 @@ end
 ---declaration_list ::= declaration | declaration_list declaration
 ---@param state ParserState
 ---@return ParserState, ASTNode
+---@nodiscard
 local function parse_declaration_list(state)
   local declarations = {}
 
@@ -463,7 +483,8 @@ end
 
 ---program ::= declaration_list
 ---@param tokens Token[]
----@return ASTNode
+---@return ASTNode?
+---@nodiscard
 function parser.parse(tokens)
   local state = {
     tokens = table.deep_copy(tokens),
@@ -474,7 +495,8 @@ function parser.parse(tokens)
   local valid = get_current_token(new_state) == nil
 
   if not valid then
-    error('unexpected token' .. get_current_token(new_state).type)
+    return nil
+    -- error('unexpected token' .. get_current_token(new_state).type)
   end
 
   return program
