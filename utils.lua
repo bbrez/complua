@@ -64,20 +64,61 @@ function table.compare(t1, t2)
   return true
 end
 
+---Verifica tentativamente se uma tabela está sendo usada como vetor. Isto é utilizado na conversão para JSON
+---Uma tabela é considerada vetor se seus índices são números inteiros positivos, começando de 1
+---@param t any
+---@return boolean
+function table.is_array(t)
+  local i = 0
+  for _ in pairs(t) do
+    i = i + 1
+    if t[i] == nil then
+      return false
+    end
+  end
+  return true
+end
+
+function table.length(t)
+  local count = 0
+  for _ in pairs(t) do
+    count = count + 1
+  end
+  return count
+end
+
 ---Converte uma tabela para uma string JSON
 ---@param t table
 function table.to_json(t)
   ---Função auxiliar para converter uma tabela para JSON
   ---@param v table
   ---@param depth number
-  function aux(v, depth)
+  local function aux(v, depth)
     local indent = string.rep('  ', depth)
     if type(v) == 'table' then
-      local result = '{\n'
-      for k, v in pairs(v) do
-        result = result .. indent .. '  ' .. k .. ': ' .. aux(v, depth + 1) .. ',\n'
+      if table.is_array(v) then
+        local result = '[\n'
+        for i, val in ipairs(v) do
+          result = result .. indent .. ' ' .. aux(val, depth + 1)
+          if i < table.length(v) then
+            result = result .. ','
+          end
+          result = result .. '\n'
+        end
+        return result .. indent .. ']'
+      else
+        local result = '{\n'
+        local count = 1
+        for key, val in pairs(v) do
+          result = result .. indent .. ' "' .. key .. '": ' .. aux(val, depth + 1)
+          if count < table.length(v) then
+            result = result .. ','
+          end
+          count = count + 1
+          result = result .. '\n'
+        end
+        return result .. indent .. '}'
       end
-      return result .. indent .. '}'
     elseif type(v) == 'string' then
       return '"' .. v .. '"'
     else
