@@ -20,6 +20,12 @@ statement_list ::= statement | statement_list statement
 
 statement ::= expression_statement | return_statement | compound_statement | variable_declaration
 
+if_statement ::= 'if' '(' expression ')' statement | 'if' '(' expression ')' statement 'else' statement
+
+while_statement ::= 'while' '(' expression ')' statement
+
+for_statement ::= 'for' '(' [expression_statement] [expression] ';' [expression] ')' statement
+
 expression_statement ::= expression ';'
 
 return_statement ::= 'return' expression ';'

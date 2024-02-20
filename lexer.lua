@@ -25,6 +25,9 @@ end
 ---| '"identifier"' # identifiers
 ---| '"int_literal"' # integer literal
 ---| '"float_literal"' # float literal
+---| '"string_literal"' # string literal
+---| '"comment"' # comment
+---| '"preprocessor"' # preprocessor
 ---| '"lparen"' # (
 ---| '"rparen"' # )
 ---| '"lbrace"' # {
@@ -40,7 +43,11 @@ end
 lexer.keywords = {
   "int",
   "float",
-  "return"
+  "return",
+  "if",
+  "else",
+  "while",
+  "for",
 }
 
 ---Avança o estado em um
@@ -160,6 +167,16 @@ function lexer.lex(source)
       state = advance(state)
     elseif current == '\n' then
       state = advance_line(state)
+    elseif current == '#' then  -- preprocessor
+      local accum = ""
+      state = advance(state)
+      current = state.source:sub(state.offset, state.offset)
+      while current ~= '\n' and state.offset < #state.source do
+        accum = accum .. current
+        state = advance(state)
+        current = state.source:sub(state.offset, state.offset)
+      end
+      table.insert(tokens, { type = 'preprocessor', value = accum, position = table.copy(state.position) })
     elseif current == '(' then
       table.insert(tokens, { type = 'lparen', value = '(', position = table.copy(state.position) })
       state = advance(state)
@@ -175,6 +192,17 @@ function lexer.lex(source)
     elseif current == ';' then
       table.insert(tokens, { type = 'semicolon', value = ';', position = table.copy(state.position) })
       state = advance(state)
+    elseif current == '"' then -- string literal
+      state = advance(state)
+      local accum = ""
+      current = state.source:sub(state.offset, state.offset)
+      while current ~= '"' and state.offset < #state.source do
+        accum = accum .. current
+        state = advance(state)
+        current = state.source:sub(state.offset, state.offset)
+      end
+      state = advance(state)
+      table.insert(tokens, { type = 'string_literal', value = accum, position = table.copy(state.position) })
     elseif current == '+' then
       table.insert(tokens, { type = 'plus', value = '+', position = table.copy(state.position) })
       state = advance(state)
@@ -185,8 +213,37 @@ function lexer.lex(source)
       table.insert(tokens, { type = 'times', value = '*', position = table.copy(state.position) })
       state = advance(state)
     elseif current == '/' then
-      table.insert(tokens, { type = 'div', value = '/', position = table.copy(state.position) })
-      state = advance(state)
+      if state.source:sub(state.offset + 1, state.offset + 1) == '/' then -- comentario de linha
+        state = advance(state)
+        state = advance(state)
+        local accum = ""
+        current = state.source:sub(state.offset, state.offset)
+        while current ~= '\n' and state.offset < #state.source do
+          accum = accum .. current
+          state = advance(state)
+          current = state.source:sub(state.offset, state.offset)
+        end
+        table.insert(tokens, { type = 'comment', value = accum, position = table.copy(state.position) })
+      elseif state.source:sub(state.offset + 1, state.offset + 1) == '*' then -- comentario de bloco
+        state = advance(state)
+        state = advance(state)
+        local accum = ""
+        current = state.source:sub(state.offset, state.offset) -- ignora o *
+        while state.offset < #state.source do
+          if current == '*' and state.source:sub(state.offset + 1, state.offset + 1) == '/' then
+            state = advance(state)
+            state = advance(state)
+            break
+          end
+          accum = accum .. current
+          state = advance(state)
+          current = state.source:sub(state.offset, state.offset)
+        end
+        table.insert(tokens, { type = 'comment', value = accum, position = table.copy(state.position) })
+      else
+        table.insert(tokens, { type = 'div', value = '/', position = table.copy(state.position) })
+        state = advance(state)
+      end
     elseif utils.is_number(current) then
       local num
       state, num = lex_number(state)

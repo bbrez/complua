@@ -46,11 +46,30 @@ local function expect(state, type)
   return state, nil
 end
 
+--Pre declaração das funções de parse
+local parse_literal
+local parse_factor
+local parse_term
+local parse_expression
+local parse_type_specifier
+local parse_variable_declaration
+local parse_expression_statement
+local parse_return_statement
+local parse_if_statement
+local parse_statement
+local parse_statement_list
+local parse_compound_statement
+local parse_parameter
+local parse_parameter_list
+local parse_function_declaration
+local parse_declaration
+local parse_declaration_list
+
 ---literal ::= int_literal | float_literal
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
-local function parse_literal(state)
+function parse_literal(state)
   local new_state, int_literal = expect(state, 'int_literal')
   if int_literal then
     return new_state, {
@@ -75,7 +94,7 @@ end
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
-local function parse_factor(state)
+function parse_factor(state)
   local new_state, identifier = expect(state, 'identifier')
   if identifier then
     return new_state, {
@@ -117,7 +136,7 @@ end
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
-local function parse_term(state)
+function parse_term(state)
   local new_state, factor = parse_factor(state)
 
   while true do
@@ -145,7 +164,7 @@ end
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
-local function parse_expression(state)
+function parse_expression(state)
   local new_state, term = parse_term(state)
 
   while true do
@@ -173,7 +192,7 @@ end
 ---@param state any
 ---@return ParserState, ASTNode?
 ---@nodiscard
-local function parse_type_specifier(state)
+function parse_type_specifier(state)
   local new_state, type_specifier = expect(state, 'keyword')
 
   if type_specifier and lexer.is_type_specifier(type_specifier.value) then
@@ -190,7 +209,7 @@ end
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
-local function parse_variable_declaration(state)
+function parse_variable_declaration(state)
   local new_state, type_specifier = parse_type_specifier(state)
   if not type_specifier then
     return state, nil
@@ -219,7 +238,7 @@ end
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
-local function parse_expression_statement(state)
+function parse_expression_statement(state)
   local new_state, expression = parse_expression(state)
   if not expression then
     return state, nil
@@ -238,7 +257,7 @@ end
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
-local function parse_return_statement(state)
+function parse_return_statement(state)
   local new_state, return_keyword = expect(state, 'keyword')
   if not return_keyword or return_keyword.value ~= 'return' then
     return state, nil
@@ -262,11 +281,69 @@ local function parse_return_statement(state)
   }
 end
 
+---if_statement ::= if '(' expression ')' compount_statement [ else compound_statement ]
+---@param state ParserState
+---@return ParserState, ASTNode?
+---@nodiscard
+function parse_if_statement(state)
+  local new_state, if_keyword = expect(state, 'keyword')
+  if not if_keyword or if_keyword.value ~= 'if' then
+    return state, nil
+  end
+
+  local left_parenthesis
+  new_state, left_parenthesis = expect(new_state, 'lparen')
+  if not left_parenthesis then
+    return state, nil
+  end
+
+  local expression
+  new_state, expression = parse_expression(new_state)
+  if not expression then
+    return state, nil
+  end
+
+  local right_parenthesis
+  new_state, right_parenthesis = expect(new_state, 'rparen')
+  if not right_parenthesis then
+    return state, nil
+  end
+
+  local if_body
+  new_state, if_body = parse_compound_statement(new_state)
+  if not if_body then
+    return state, nil
+  end
+
+  local else_keyword
+  new_state, else_keyword = expect(new_state, 'keyword')
+  if else_keyword and else_keyword.value == 'else' then
+    local else_body
+    new_state, else_body = parse_compound_statement(new_state)
+    if not else_body then
+      return state, nil
+    end
+
+    return new_state, {
+      type = 'if_statement',
+      condition = expression,
+      if_body = if_body,
+      else_body = else_body
+    }
+  end
+
+  return new_state, {
+    type = 'if_statement',
+    condition = expression,
+    if_body = if_body
+  }
+end
+
 ---statement ::= expression_statement | return_statement | variable_declaration
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
-local function parse_statement(state)
+function parse_statement(state)
   local new_state, expression_statement = parse_expression_statement(state)
   if expression_statement then
     return new_state, expression_statement
@@ -276,6 +353,12 @@ local function parse_statement(state)
   new_state, return_statement = parse_return_statement(state)
   if return_statement then
     return new_state, return_statement
+  end
+
+  local if_statement
+  new_state, if_statement = parse_if_statement(state)
+  if if_statement then
+    return new_state, if_statement
   end
 
   local variable_declaration
@@ -291,7 +374,7 @@ end
 ---@param state ParserState
 ---@return ParserState, ASTNode
 ---@nodiscard
-local function parse_statement_list(state)
+function parse_statement_list(state)
   local statements = {}
 
   while true do
@@ -316,7 +399,7 @@ end
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
-local function parse_compound_statement(state)
+function parse_compound_statement(state)
   local new_state, left_brace = expect(state, 'lbrace')
   if not left_brace then
     return state, nil
@@ -342,7 +425,7 @@ end
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
-local function parse_parameter(state)
+function parse_parameter(state)
   local new_state, type_specifier = parse_type_specifier(state)
   if not type_specifier then
     return state, nil
@@ -365,7 +448,7 @@ end
 ---@param state ParserState
 ---@return ParserState, ASTNode
 ---@nodiscard
-local function parse_parameter_list(state)
+function parse_parameter_list(state)
   local parameters = {}
 
   while true do
@@ -390,7 +473,7 @@ end
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
-local function parse_function_declaration(state)
+function parse_function_declaration(state)
   local new_state, type_specifier = parse_type_specifier(state)
 
   if not type_specifier then
@@ -437,7 +520,7 @@ end
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
-local function parse_declaration(state)
+function parse_declaration(state)
   local new_state, variable_declaration = parse_variable_declaration(state)
   if variable_declaration then
     return new_state, variable_declaration
@@ -456,7 +539,7 @@ end
 ---@param state ParserState
 ---@return ParserState, ASTNode
 ---@nodiscard
-local function parse_declaration_list(state)
+function parse_declaration_list(state)
   local declarations = {}
 
   while true do

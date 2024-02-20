@@ -1,13 +1,13 @@
 [ ] Declarações de Variáveis
 [ ] Atribuições
 [ ] Operadores com precedência e associatividade
-    [ ] Aritmeticos
+    [X] Aritmeticos
     [ ] Relacionais
     [ ] Lógicos
 [ ] If / If Else
 [ ] For / While
-[ ] Strings
-[ ] Comentarios
+[X] Strings
+[X] Comentarios
 [ ] Leitura e Escrita
-[ ] Retorno da fun. principal
-[ ] Inclusao de bibliotecas
+[X] Retorno da fun. principal
+[X] Inclusao de bibliotecas
