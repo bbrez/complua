@@ -281,7 +281,7 @@ function parse_return_statement(state)
   }
 end
 
----if_statement ::= if '(' expression ')' compount_statement [ else compound_statement ]
+---if_statement ::= if '(' expression ')' statement [ else statement ]
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
@@ -309,33 +309,33 @@ function parse_if_statement(state)
     return state, nil
   end
 
-  local if_body
-  new_state, if_body = parse_compound_statement(new_state)
-  if not if_body then
+  local statement
+  new_state, statement = parse_statement(new_state)
+  if not statement then
     return state, nil
   end
 
   local else_keyword
   new_state, else_keyword = expect(new_state, 'keyword')
   if else_keyword and else_keyword.value == 'else' then
-    local else_body
-    new_state, else_body = parse_compound_statement(new_state)
-    if not else_body then
+    local else_statement
+    new_state, else_statement = parse_statement(new_state)
+    if not else_statement then
       return state, nil
     end
 
     return new_state, {
       type = 'if_statement',
       condition = expression,
-      if_body = if_body,
-      else_body = else_body
+      then_statement = statement,
+      else_statement = else_statement
     }
   end
 
   return new_state, {
     type = 'if_statement',
     condition = expression,
-    if_body = if_body
+    then_statement = statement
   }
 end
 
