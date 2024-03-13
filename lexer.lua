@@ -32,6 +32,23 @@ end
 ---| '"rparen"' # )
 ---| '"lbrace"' # {
 ---| '"rbrace"' # }
+---| '"plus"' # +
+---| '"minus"' # -
+---| '"times"' # *
+---| '"div"' # /
+---| '"assign"' # =
+---| '"not"' # !
+---| '"and"' # &&
+---| '"or"' # ||
+---| '"bitwise_and"' # &
+---| '"bitwise_or"' # |
+---| '"less"' # <
+---| '"greater"' # >
+---| '"less_equal"' # <=
+---| '"greater_equal"' # >=
+---| '"equal"' # ==
+---| '"not_equal"' # !=
+---| '"comma"' # ,
 ---| '"semicolon"' # ;
 ---| '"eof"' # eof
 
@@ -167,7 +184,7 @@ function lexer.lex(source)
       state = advance(state)
     elseif current == '\n' then
       state = advance_line(state)
-    elseif current == '#' then  -- preprocessor
+    elseif current == '#' then -- preprocessor
       local accum = ""
       state = advance(state)
       current = state.source:sub(state.offset, state.offset)
@@ -192,6 +209,63 @@ function lexer.lex(source)
     elseif current == ';' then
       table.insert(tokens, { type = 'semicolon', value = ';', position = table.copy(state.position) })
       state = advance(state)
+    elseif current == ',' then
+      table.insert(tokens, { type = 'comma', value = ',', position = table.copy(state.position) })
+      state = advance(state)
+    elseif current == '&' then
+      if state.source:sub(state.offset + 1, state.offset + 1) == '&' then
+        table.insert(tokens, { type = 'and', value = '&&', position = table.copy(state.position) })
+        state = advance(state)
+        state = advance(state)
+      else
+        table.insert(tokens, { type = 'bitwise_and', value = '&', position = table.copy(state.position) })
+        state = advance(state)
+      end
+    elseif current == '|' then
+      if state.source:sub(state.offset + 1, state.offset + 1) == '|' then
+        table.insert(tokens, { type = 'or', value = '||', position = table.copy(state.position) })
+        state = advance(state)
+        state = advance(state)
+      else
+        table.insert(tokens, { type = 'bitwise_or', value = '|', position = table.copy(state.position) })
+        state = advance(state)
+      end
+    elseif current == '<' then
+      if state.source:sub(state.offset + 1, state.offset + 1) == '=' then
+        table.insert(tokens, { type = 'less_equal', value = '<=', position = table.copy(state.position) })
+        state = advance(state)
+        state = advance(state)
+      else
+        table.insert(tokens, { type = 'less', value = '<', position = table.copy(state.position) })
+        state = advance(state)
+      end
+    elseif current == '>' then
+      if state.source:sub(state.offset + 1, state.offset + 1) == '=' then
+        table.insert(tokens, { type = 'greater_equal', value = '>=', position = table.copy(state.position) })
+        state = advance(state)
+        state = advance(state)
+      else
+        table.insert(tokens, { type = 'greater', value = '>', position = table.copy(state.position) })
+        state = advance(state)
+      end
+    elseif current == '=' then
+      if state.source:sub(state.offset + 1, state.offset + 1) == '=' then
+        table.insert(tokens, { type = 'equal', value = '==', position = table.copy(state.position) })
+        state = advance(state)
+        state = advance(state)
+      else
+        table.insert(tokens, { type = 'assign', value = '=', position = table.copy(state.position) })
+        state = advance(state)
+      end
+    elseif current == '!' then
+      if state.source:sub(state.offset + 1, state.offset + 1) == '=' then
+        table.insert(tokens, { type = 'not_equal', value = '!=', position = table.copy(state.position) })
+        state = advance(state)
+        state = advance(state)
+      else
+        table.insert(tokens, { type = 'not', value = '!', position = table.copy(state.position) })
+        state = advance(state)
+      end
     elseif current == '"' then -- string literal
       state = advance(state)
       local accum = ""

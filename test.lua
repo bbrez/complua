@@ -3,6 +3,18 @@ local parser = require('parser')
 
 local source = [[
     int main() {
+        int a;
+        if(a == 35) {
+          printf("35");
+        } else {
+          printf("nao 35");
+        }
+
+        a = 0;
+        while(a < 10) {
+          a = a + 1;
+          printf("a");
+        }
         return 0;
     }
 ]]

@@ -47,23 +47,461 @@ local function expect(state, type)
 end
 
 --Pre declaração das funções de parse
-local parse_literal
-local parse_factor
-local parse_term
-local parse_expression
-local parse_type_specifier
+local parse_declaration_list
+local parse_declaration
 local parse_variable_declaration
+local parse_function_declaration
+local parse_parameter_list
+local parse_parameter
+local parse_compound_statement
+local parse_statement_list
+local parse_statement
+local parse_if_statement
+local parse_while_statement
+local parse_for_statement
 local parse_expression_statement
 local parse_return_statement
-local parse_if_statement
-local parse_statement
-local parse_statement_list
-local parse_compound_statement
-local parse_parameter
-local parse_parameter_list
-local parse_function_declaration
-local parse_declaration
-local parse_declaration_list
+local parse_assignment_statement
+local parse_expression
+local parse_logical_or_expression
+local parse_logical_and_expression
+local parse_equality_expression
+local parse_relational_expression
+local parse_additive_expression
+local parse_multiplicative_expression
+local parse_unary_expression
+local parse_function_call
+local parse_argument_list
+local parse_primary_expression
+local parse_literal
+local parse_type_specifier
+
+---primary_expression ::= identifier | literal | function_call | '(' expression ')'
+---@param state ParserState
+---@return ParserState, ASTNode?
+---@nodiscard
+function parse_primary_expression(state)
+  local new_state
+  local function_call
+  new_state, function_call = parse_function_call(state)
+  if function_call then
+    return new_state, function_call
+  end
+
+  local identifier
+  new_state, identifier = expect(state, 'identifier')
+  if identifier then
+    return new_state, {
+      type = 'identifier',
+      value = identifier.value
+    }
+  end
+
+  local literal
+  new_state, literal = parse_literal(state)
+  if literal then
+    return new_state, literal
+  end
+
+  local left_parenthesis
+  new_state, left_parenthesis = expect(state, 'lparen')
+  if not left_parenthesis then
+    return state, nil
+  end
+
+  local expression
+  new_state, expression = parse_expression(new_state)
+
+  local right_parenthesis
+  new_state, right_parenthesis = expect(new_state, 'rparen')
+  if not right_parenthesis then
+    return state, nil
+  end
+
+  return new_state, expression
+end
+
+---argument_list ::= expression | argument_list ',' expression
+---@param state ParserState
+---@return ParserState, ASTNode
+---@nodiscard
+function parse_argument_list(state)
+  local arguments = {}
+
+  while true do
+    local current_token = get_current_token(state)
+
+    if not current_token or current_token.value == ')' then
+      break
+    end
+
+    local expression
+    state, expression = parse_expression(state)
+    table.insert(arguments, expression)
+
+    local comma
+    state, comma = expect(state, 'comma')
+    if not comma then
+      break
+    end
+  end
+
+  return state, {
+    type = 'argument_list',
+    arguments = arguments
+  }
+end
+
+---function_call ::= identifier '(' [argument_list] ')'
+---@param state ParserState
+---@return ParserState, ASTNode?
+---@nodiscard
+function parse_function_call(state)
+  local new_state, identifier = expect(state, 'identifier')
+  if not identifier then
+    return state, nil
+  end
+
+  local left_parenthesis
+  new_state, left_parenthesis = expect(new_state, 'lparen')
+  if not left_parenthesis then
+    return state, nil
+  end
+
+  local argument_list
+  new_state, argument_list = parse_argument_list(new_state)
+
+  local right_parenthesis
+  new_state, right_parenthesis = expect(new_state, 'rparen')
+  if not right_parenthesis then
+    return state, nil
+  end
+
+  return new_state, {
+    type = 'function_call',
+    identifier = identifier,
+    arguments = argument_list
+  }
+end
+
+---unary_expression ::= primary_expression | '-' unary_expression | '+' unary_expression | '!' unary_expression
+---@param state ParserState
+---@return ParserState, ASTNode?
+---@nodiscard
+function parse_unary_expression(state)
+  local new_state, primary_expression = parse_primary_expression(state)
+  if primary_expression then
+    return new_state, primary_expression
+  end
+
+  local operator
+  new_state, operator = expect(state, 'minus')
+  if not operator then
+    new_state, operator = expect(state, 'plus')
+  end
+  if not operator then
+    new_state, operator = expect(state, 'not')
+  end
+
+  if not operator then
+    return state, nil
+  end
+
+  local unary_expression
+  new_state, unary_expression = parse_unary_expression(new_state)
+  if not unary_expression then
+    return state, nil
+  end
+
+  return new_state, {
+    type = 'unary_expression',
+    operator = operator.value,
+    expression = unary_expression
+  }
+end
+
+---multiplicative_expression ::= unary_expression | multiplicative_expression '*' unary_expression | multiplicative_expression '/' unary_expression
+---@param state ParserState
+---@return ParserState, ASTNode?
+---@nodiscard
+function parse_multiplicative_expression(state)
+  local new_state, unary_expression = parse_unary_expression(state)
+  if not unary_expression then
+    return state, nil
+  end
+
+  local operator
+  new_state, operator = expect(new_state, 'times')
+  if not operator then
+    new_state, operator = expect(new_state, 'div')
+  end
+
+  if not operator then
+    return new_state, unary_expression
+  end
+
+  local right_unary_expression
+  new_state, right_unary_expression = parse_multiplicative_expression(new_state)
+  if not right_unary_expression then
+    return state, nil
+  end
+
+  return new_state, {
+    type = 'multiplicative_expression',
+    left = unary_expression,
+    right = right_unary_expression,
+    operator = operator.value
+  }
+end
+
+---additive_expression ::= multiplicative_expression | additive_expression '+' multiplicative_expression | additive_expression '-' multiplicative_expression
+---@param state ParserState
+---@return ParserState, ASTNode?
+---@nodiscard
+function parse_additive_expression(state)
+  local new_state, multiplicative_expression = parse_multiplicative_expression(state)
+  if not multiplicative_expression then
+    return state, nil
+  end
+
+  local operator
+  new_state, operator = expect(new_state, 'plus')
+  if not operator then
+    new_state, operator = expect(new_state, 'minus')
+  end
+
+  if not operator then
+    return new_state, multiplicative_expression
+  end
+
+  local right_multiplicative_expression
+  new_state, right_multiplicative_expression = parse_additive_expression(new_state)
+  if not right_multiplicative_expression then
+    return state, nil
+  end
+
+  return new_state, {
+    type = 'additive_expression',
+    left = multiplicative_expression,
+    right = right_multiplicative_expression,
+    operator = operator.value
+  }
+end
+
+---relational_expression ::= additive_expression | relational_expression '<' additive_expression | relational_expression '>' additive_expression | relational_expression '<=' additive_expression | relational_expression '>=' additive_expression
+---@param state ParserState
+---@return ParserState, ASTNode?
+---@nodiscard
+function parse_relational_expression(state)
+  local new_state, additive_expression = parse_additive_expression(state)
+  if not additive_expression then
+    return state, nil
+  end
+
+  local operator
+  new_state, operator = expect(new_state, 'less')
+  if not operator then
+    new_state, operator = expect(new_state, 'greater')
+  end
+  if not operator then
+    new_state, operator = expect(new_state, 'less_equal')
+  end
+  if not operator then
+    new_state, operator = expect(new_state, 'greater_equal')
+  end
+
+  if not operator then
+    return new_state, additive_expression
+  end
+
+  local right_additive_expression
+  new_state, right_additive_expression = parse_relational_expression(new_state)
+  if not right_additive_expression then
+    return state, nil
+  end
+
+  return new_state, {
+    type = 'relational_expression',
+    left = additive_expression,
+    right = right_additive_expression,
+    operator = operator.value
+  }
+end
+
+---equality_expression ::= relational_expression | equality_expression '==' relational_expression | equality_expression '!=' relational_expression
+---@param state ParserState
+---@return ParserState, ASTNode?
+---@nodiscard
+function parse_equality_expression(state)
+  local new_state, relational_expression = parse_relational_expression(state)
+  if not relational_expression then
+    return state, nil
+  end
+
+  local equal
+  new_state, equal = expect(new_state, 'equal')
+  if not equal then
+    return new_state, relational_expression
+  end
+
+  local right_relational_expression
+  new_state, right_relational_expression = parse_equality_expression(new_state)
+  if not right_relational_expression then
+    return state, nil
+  end
+
+  return new_state, {
+    type = 'equality_expression',
+    left = relational_expression,
+    right = right_relational_expression,
+    operator = equal.value
+  }
+end
+
+---logical_and_expression ::= equality_expression | logical_and_expression '&&' equality_expression
+---@param state ParserState
+---@return ParserState, ASTNode?
+---@nodiscard
+function parse_logical_and_expression(state)
+  local new_state, equality_expression = parse_equality_expression(state)
+  if not equality_expression then
+    return state, nil
+  end
+
+  local logical_and
+  new_state, logical_and = expect(new_state, 'and')
+  if not logical_and then
+    return new_state, equality_expression
+  end
+
+  local right_equality_expression
+  new_state, right_equality_expression = parse_logical_and_expression(new_state)
+  if not right_equality_expression then
+    return state, nil
+  end
+
+  return new_state, {
+    type = 'logical_and_expression',
+    left = equality_expression,
+    right = right_equality_expression
+  }
+end
+
+---logical_or_expression ::= logical_and_expression | logical_or_expression '||' logical_and_expression
+---@param state ParserState
+---@return ParserState, ASTNode?
+---@nodiscard
+function parse_logical_or_expression(state)
+  local new_state, logical_and_expression = parse_logical_and_expression(state)
+  if not logical_and_expression then
+    return state, nil
+  end
+
+  local logical_or
+  new_state, logical_or = expect(new_state, 'or')
+  if not logical_or then
+    return new_state, logical_and_expression
+  end
+
+  local right_logical_and_expression
+  new_state, right_logical_and_expression = parse_logical_and_expression(new_state)
+  if not right_logical_and_expression then
+    return state, nil
+  end
+
+  return new_state, {
+    type = 'logical_or_expression',
+    left = logical_and_expression,
+    right = right_logical_and_expression
+  }
+end
+
+---for_statement ::= 'for' '(' [expression_statement] [expression_statement] [expression] ')' compound_statement
+---@param state ParserState
+---@return ParserState, ASTNode?
+---@nodiscard
+function parse_for_statement(state)
+  local new_state, for_keyword = expect(state, 'keyword')
+  if not for_keyword or for_keyword.value ~= 'for' then
+    return state, nil
+  end
+
+  local left_parenthesis
+  new_state, left_parenthesis = expect(new_state, 'lparen')
+  if not left_parenthesis then
+    return state, nil
+  end
+
+  local init_statement
+  new_state, init_statement = parse_expression_statement(new_state)
+
+  local condition
+  new_state, condition = parse_expression_statement(new_state)
+
+  local update_statement
+  new_state, update_statement = parse_expression(new_state)
+
+  local right_parenthesis
+  new_state, right_parenthesis = expect(new_state, 'rparen')
+  if not right_parenthesis then
+    return state, nil
+  end
+
+  local compound_statement
+  new_state, compound_statement = parse_compound_statement(new_state)
+  if not compound_statement then
+    return state, nil
+  end
+
+  return new_state, {
+    type = 'for_statement',
+    init = init_statement,
+    condition = condition,
+    update = update_statement,
+    body = compound_statement
+  }
+end
+
+---while_statement ::= 'while' '(' expression ')' compound_statement
+---@param state ParserState
+---@return ParserState, ASTNode?
+---@nodiscard
+function parse_while_statement(state)
+  local new_state, while_keyword = expect(state, 'keyword')
+  if not while_keyword or while_keyword.value ~= 'while' then
+    return state, nil
+  end
+
+  local left_parenthesis
+  new_state, left_parenthesis = expect(new_state, 'lparen')
+  if not left_parenthesis then
+    return state, nil
+  end
+
+  local expression
+  new_state, expression = parse_expression(new_state)
+  if not expression then
+    return state, nil
+  end
+
+  local right_parenthesis
+  new_state, right_parenthesis = expect(new_state, 'rparen')
+  if not right_parenthesis then
+    return state, nil
+  end
+
+  local compound_statement
+  new_state, compound_statement = parse_compound_statement(new_state)
+  if not compound_statement then
+    return state, nil
+  end
+
+  return new_state, {
+    type = 'while_statement',
+    condition = expression,
+    body = compound_statement
+  }
+end
 
 ---literal ::= int_literal | float_literal
 ---@param state ParserState
@@ -87,105 +525,24 @@ function parse_literal(state)
     }
   end
 
+  local string_literal
+  new_state, string_literal = expect(state, 'string_literal')
+  if string_literal then
+    return new_state, {
+      type = 'string_literal',
+      value = string_literal.value
+    }
+  end
+
   return state, nil
 end
 
----factor ::= identifier | literal | '(' expression ')'
----@param state ParserState
----@return ParserState, ASTNode?
----@nodiscard
-function parse_factor(state)
-  local new_state, identifier = expect(state, 'identifier')
-  if identifier then
-    return new_state, {
-      type = 'identifier',
-      value = identifier.value
-    }
-  end
-
-  local literal
-  new_state, literal = parse_literal(state)
-  if literal then
-    return new_state, literal
-  end
-
-  local left_parenthesis
-  new_state, left_parenthesis = expect(new_state, 'lparen')
-
-  if not left_parenthesis then
-    return state, nil
-  end
-
-  local expression
-  new_state, expression = parse_expression(new_state)
-
-  local right_parenthesis
-  new_state, right_parenthesis = expect(new_state, 'rparen')
-
-  if not right_parenthesis then
-    return state, nil
-  end
-
-  return new_state, {
-    type = 'parenthesized',
-    expression = expression
-  }
-end
-
----term ::= factor | term '*' factor | term '/' factor
----@param state ParserState
----@return ParserState, ASTNode?
----@nodiscard
-function parse_term(state)
-  local new_state, factor = parse_factor(state)
-
-  while true do
-    local current_token = get_current_token(state)
-
-    if not current_token or (current_token.type ~= 'times' and current_token.type ~= 'div') then
-      break
-    end
-
-    new_state = consume_token(state)
-    local next_factor
-    new_state, next_factor = parse_factor(new_state)
-    factor = {
-      type = 'term',
-      op = current_token.type,
-      left = factor,
-      right = next_factor
-    }
-  end
-
-  return new_state, factor
-end
-
----expression ::= term | expression '+' term | expression '-' term
+---expression ::= logical_or_expression
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
 function parse_expression(state)
-  local new_state, term = parse_term(state)
-
-  while true do
-    local current_token = get_current_token(state)
-
-    if not current_token or (current_token.type ~= 'plus' and current_token.type ~= 'minus') then
-      break
-    end
-
-    new_state = consume_token(state)
-    local next_term
-    new_state, next_term = parse_term(new_state)
-    term = {
-      type = 'expression',
-      op = current_token.type,
-      left = term,
-      right = next_term
-    }
-  end
-
-  return new_state, term
+  return parse_logical_or_expression(state)
 end
 
 ---type_specifier ::= 'int' | 'float'
@@ -281,7 +638,7 @@ function parse_return_statement(state)
   }
 end
 
----if_statement ::= if '(' expression ')' statement [ else statement ]
+---if_statement ::= if '(' expression ')' compound_statement [ else compound_statement ]
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
@@ -309,33 +666,67 @@ function parse_if_statement(state)
     return state, nil
   end
 
-  local statement
-  new_state, statement = parse_statement(new_state)
-  if not statement then
+  local compound_statement
+  new_state, compound_statement = parse_compound_statement(new_state)
+  if not compound_statement then
     return state, nil
   end
 
   local else_keyword
   new_state, else_keyword = expect(new_state, 'keyword')
   if else_keyword and else_keyword.value == 'else' then
-    local else_statement
-    new_state, else_statement = parse_statement(new_state)
-    if not else_statement then
+    local else_compound_statement
+    new_state, else_compound_statement = parse_compound_statement(new_state)
+    if not else_compound_statement then
       return state, nil
     end
 
     return new_state, {
       type = 'if_statement',
       condition = expression,
-      then_statement = statement,
-      else_statement = else_statement
+      body = compound_statement,
+      else_body = else_compound_statement
     }
   end
 
   return new_state, {
     type = 'if_statement',
     condition = expression,
-    then_statement = statement
+    body = compound_statement
+  }
+end
+
+---assignment_statement ::= identifier '=' expression ';'
+---@param state ParserState
+---@return ParserState, ASTNode?
+function parse_assignment_statement(state)
+  local new_state, identifier = expect(state, 'identifier')
+  if not identifier then
+    return state, nil
+  end
+
+  local assign
+  new_state, assign = expect(new_state, 'assign')
+  if not assign then
+    return state, nil
+  end
+
+  local expression
+  new_state, expression = parse_expression(new_state)
+  if not expression then
+    return state, nil
+  end
+
+  local semicolon
+  new_state, semicolon = expect(new_state, 'semicolon')
+  if not semicolon then
+    return state, nil
+  end
+
+  return new_state, {
+    type = 'assignment_statement',
+    identifier = identifier,
+    expression = expression
   }
 end
 
@@ -344,16 +735,7 @@ end
 ---@return ParserState, ASTNode?
 ---@nodiscard
 function parse_statement(state)
-  local new_state, expression_statement = parse_expression_statement(state)
-  if expression_statement then
-    return new_state, expression_statement
-  end
-
-  local return_statement
-  new_state, return_statement = parse_return_statement(state)
-  if return_statement then
-    return new_state, return_statement
-  end
+  local new_state
 
   local if_statement
   new_state, if_statement = parse_if_statement(state)
@@ -365,6 +747,36 @@ function parse_statement(state)
   new_state, variable_declaration = parse_variable_declaration(state)
   if variable_declaration then
     return new_state, variable_declaration
+  end
+
+  local return_statement
+  new_state, return_statement = parse_return_statement(state)
+  if return_statement then
+    return new_state, return_statement
+  end
+
+  local while_statement
+  new_state, while_statement = parse_while_statement(state)
+  if while_statement then
+    return new_state, while_statement
+  end
+
+  local for_statement
+  new_state, for_statement = parse_for_statement(state)
+  if for_statement then
+    return new_state, for_statement
+  end
+
+  local assignment_statement
+  new_state, assignment_statement = parse_assignment_statement(state)
+  if assignment_statement then
+    return new_state, assignment_statement
+  end
+
+  local expression_statement
+  new_state, expression_statement = parse_expression_statement(state)
+  if expression_statement then
+    return new_state, expression_statement
   end
 
   return state, nil
