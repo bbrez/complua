@@ -26,6 +26,7 @@ end
 ---| '"int_literal"' # integer literal
 ---| '"float_literal"' # float literal
 ---| '"string_literal"' # string literal
+---| '"char_literal"' # comment
 ---| '"comment"' # comment
 ---| '"preprocessor"' # preprocessor
 ---| '"lparen"' # (
@@ -332,6 +333,19 @@ function lexer.lex(source)
   end
 
   return state.identifiers, tokens
+end
+
+---Remove tokens que não são relevantes para a análise sintática, como comentários e pré-processadores
+---@param tokens Token[]
+---@return Token[]
+function lexer.cleanup(tokens)
+  local cleaned = {}
+  for _, token in ipairs(tokens) do
+    if token.type ~= 'comment' and token.type ~= 'preprocessor' then
+      table.insert(cleaned, token)
+    end
+  end
+  return cleaned
 end
 
 return lexer

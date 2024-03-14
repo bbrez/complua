@@ -2,6 +2,8 @@ local lexer = require('lexer')
 local parser = require('parser')
 
 local source = [[
+    #include <stdio.h>
+
     int main() {
         int a;
         if(a == 35) {
@@ -9,6 +11,8 @@ local source = [[
         } else {
           printf("nao 35");
         }
+
+        // Comentario
 
         a = 0;
         while(a < 10) {
@@ -24,6 +28,7 @@ print('Symbols:')
 print(table.to_json(identifiers))
 print('Token list:')
 print(table.to_json(tokens))
+tokens = lexer.cleanup(tokens)
 local program = parser.parse(tokens)
 
 print('Program:')

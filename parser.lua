@@ -426,14 +426,20 @@ function parse_for_statement(state)
     return state, nil
   end
 
+
   local left_parenthesis
   new_state, left_parenthesis = expect(new_state, 'lparen')
   if not left_parenthesis then
+    local error_token = get_current_token(new_state)
+    print('When parsing for statement:')
+    print('\tExpected `(`, got ' .. error_token.type .. ' ' .. error_token.value)
+    print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
+    assert(false)
     return state, nil
   end
 
   local init_statement
-  new_state, init_statement = parse_expression_statement(new_state)
+  new_state, init_statement = parse_assignment_statement(new_state)
 
   local condition
   new_state, condition = parse_expression_statement(new_state)
@@ -444,6 +450,11 @@ function parse_for_statement(state)
   local right_parenthesis
   new_state, right_parenthesis = expect(new_state, 'rparen')
   if not right_parenthesis then
+    local error_token = get_current_token(new_state)
+    print('When parsing for statement:')
+    print('\tExpected `)`, got ' .. error_token.type .. ' ' .. error_token.value)
+    print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
+    assert(false)
     return state, nil
   end
 
@@ -475,6 +486,11 @@ function parse_while_statement(state)
   local left_parenthesis
   new_state, left_parenthesis = expect(new_state, 'lparen')
   if not left_parenthesis then
+    local error_token = get_current_token(new_state)
+    print('When parsing while statement:')
+    print('\tExpected `(`, got ' .. error_token.type .. ' ' .. error_token.value)
+    print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
+    assert(false)
     return state, nil
   end
 
@@ -487,6 +503,11 @@ function parse_while_statement(state)
   local right_parenthesis
   new_state, right_parenthesis = expect(new_state, 'rparen')
   if not right_parenthesis then
+    local error_token = get_current_token(new_state)
+    print('When parsing while statement:')
+    print('\tExpected `)`, got ' .. error_token.type .. ' ' .. error_token.value)
+    print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
+    assert(false)
     return state, nil
   end
 
@@ -531,6 +552,15 @@ function parse_literal(state)
     return new_state, {
       type = 'string_literal',
       value = string_literal.value
+    }
+  end
+
+  local char_literal
+  new_state, char_literal = expect(state, 'char_literal')
+  if char_literal then
+    return new_state, {
+      type = 'char_literal',
+      value = char_literal.value
     }
   end
 
@@ -580,7 +610,7 @@ function parse_variable_declaration(state)
 
   local semicolon
   new_state, semicolon = expect(new_state, 'semicolon')
-  if not semicolon then
+  if not semicolon then -- ainda pode ser uma função, então não é um erro
     return state, nil
   end
 
@@ -604,6 +634,11 @@ function parse_expression_statement(state)
   local semicolon
   new_state, semicolon = expect(new_state, 'semicolon')
   if not semicolon then
+    local error_token = get_current_token(new_state)
+    print('when parsing expression statement:')
+    print('\texpected `;`, got ' .. error_token.type .. ' ' .. error_token.value)
+    print('\tat line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
+    assert(false)
     return state, nil
   end
 
@@ -623,12 +658,22 @@ function parse_return_statement(state)
   local expression
   new_state, expression = parse_expression(new_state)
   if not expression then
+    local error_token = get_current_token(new_state)
+    print('when parsing return statement:')
+    print('\texpected `expression`, got ' .. error_token.type .. ' ' .. error_token.value)
+    print('\tat line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
+    assert(false)
     return state, nil
   end
 
   local semicolon
   new_state, semicolon = expect(new_state, 'semicolon')
   if not semicolon then
+    local error_token = get_current_token(new_state)
+    print('when parsing return statement:')
+    print('\texpected `;`, got ' .. error_token.type .. ' ' .. error_token.value)
+    print('\tat line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
+    assert(false)
     return state, nil
   end
 
@@ -651,6 +696,11 @@ function parse_if_statement(state)
   local left_parenthesis
   new_state, left_parenthesis = expect(new_state, 'lparen')
   if not left_parenthesis then
+    local error_token = get_current_token(new_state)
+    print('When parsing if statement:')
+    print('\tExpected `(`, got ' .. error_token.type .. ' ' .. error_token.value)
+    print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
+    assert(false)
     return state, nil
   end
 
@@ -663,6 +713,11 @@ function parse_if_statement(state)
   local right_parenthesis
   new_state, right_parenthesis = expect(new_state, 'rparen')
   if not right_parenthesis then
+    local error_token = get_current_token(new_state)
+    print('When parsing if statement:')
+    print('\tExpected `)`, got ' .. error_token.type .. ' ' .. error_token.value)
+    print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
+    assert(false)
     return state, nil
   end
 
@@ -720,6 +775,11 @@ function parse_assignment_statement(state)
   local semicolon
   new_state, semicolon = expect(new_state, 'semicolon')
   if not semicolon then
+    local error_token = get_current_token(new_state)
+    print('When parsing assignment statement:')
+    print('\tExpected `;`, got ' .. error_token.type .. ' ' .. error_token.value)
+    print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
+    assert(false)
     return state, nil
   end
 
