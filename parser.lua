@@ -1062,6 +1062,12 @@ function parse_function_declaration(state)
   local compound_statement
   new_state, compound_statement = parse_compound_statement(new_state)
 
+  if exists(state.context, identifier.value) then
+    print('Identificador `' .. identifier.value .. '` já foi usado no contexto atual')
+    os.exit(1)
+    return state, nil
+  end
+
   return new_state, {
     type = 'function_declaration',
     type_specifier = type_specifier,
