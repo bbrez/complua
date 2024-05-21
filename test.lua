@@ -4,18 +4,17 @@ local parser = require('parser')
 local source = [[
     #include <stdio.h>
 
-    int a;
-    int main() {
+    int main(int argc) {
         int a;
         int b;
     }
 ]]
 
 local identifiers, tokens = lexer.lex(source)
-print('Symbols:')
-print(table.to_json(identifiers))
-print('Token list:')
-print(table.to_json(tokens))
+-- print('Symbols:')
+-- print(table.to_json(identifiers))
+-- print('Token list:')
+-- print(table.to_json(tokens))
 tokens = lexer.cleanup(tokens)
 local program = parser.parse(tokens)
 

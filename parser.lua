@@ -11,6 +11,7 @@ local parser = {}
 
 ---@class Function
 ---@field name string
+---@field type "function"
 ---@field return_type var_type
 ---@field params Variable[]
 
@@ -60,19 +61,43 @@ local function popContext(state)
   return new_state
 end
 
----Verifica se um símbolo existe no contexto atual ou algum superior
+
+---Verifica se um identificador existe no contexto atual
 ---@param context Context
 ---@param identifier string
-local function exists(context, identifier)
+---@return (Variable | Function)?
+local function existsCurrent(context, identifier)
+  return context.content[identifier]
+end
+
+---Verifica se um identificador existe no contexto atual ou em qualquer contexto pai
+---@param context Context
+---@param identifier string
+---@return (Variable | Function)?
+local function existsAll(context, identifier)
   if context.content[identifier] then
-    return true
+    return context.content[identifier]
   end
 
   if context.parent then
-    return exists(context.parent, identifier)
+    return existsAll(context.parent, identifier)
   end
 
-  return false
+  return nil
+end
+
+---Transforma os argumentos para o formato da tabela de simbolos
+---@param args ASTNode
+---@return Variable[]
+local function extractArgs(args)
+  local extracted = {}
+  for _, arg in ipairs(args.parameters) do
+    table.insert(extracted, {
+      name = arg.identifier.value,
+      type = arg.type_specifier.value
+    })
+  end
+  return extracted
 end
 
 ---Retorna o token atual do parser
@@ -241,6 +266,18 @@ function parse_function_call(state)
   local right_parenthesis
   new_state, right_parenthesis = expect(new_state, 'rparen')
   if not right_parenthesis then
+    return state, nil
+  end
+
+  if not existsAll(state.context, identifier.value) then
+    print('Identificador `' .. identifier.value .. '` não existe no contexto atual')
+    os.exit(1)
+    return state, nil
+  end
+
+  if existsAll(state.context, identifier.value).type ~= 'function' then
+    print('Identificador `' .. identifier.value .. '` não é uma função')
+    os.exit(1)
     return state, nil
   end
 
@@ -681,14 +718,13 @@ function parse_variable_declaration(state)
     return state, nil
   end
 
-  if exists(state.context, identifier.value) then
-    print('Identifier `' .. identifier.value .. '` already used in current context')
+  if existsCurrent(new_state.context, identifier.value) ~= nil then
+    print('Identificador `' .. identifier.value .. '` já existe no contexto atual')
     os.exit(1)
     return state, nil
   end
 
-  print(table.to_json(type_specifier))
-  state.context.content[identifier.value] = {
+  new_state.context.content[identifier.value] = {
     name = identifier.value,
     type = type_specifier.value
   }
@@ -1062,11 +1098,18 @@ function parse_function_declaration(state)
   local compound_statement
   new_state, compound_statement = parse_compound_statement(new_state)
 
-  if exists(state.context, identifier.value) then
-    print('Identificador `' .. identifier.value .. '` já foi usado no contexto atual')
+  if existsCurrent(new_state.context, identifier.value) then
+    print('Identificador `' .. identifier.value .. '` já existe no contexto atual')
     os.exit(1)
     return state, nil
   end
+
+  local params = extractArgs(parameter_list)
+  new_state.context.content[identifier.value] = {
+    name = identifier.value,
+    type = type_specifier.value,
+    params = params
+  }
 
   return new_state, {
     type = 'function_declaration',
