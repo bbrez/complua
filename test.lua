@@ -4,22 +4,9 @@ local parser = require('parser')
 local source = [[
     #include <stdio.h>
 
+    int a;
     int main() {
         int a;
-        if(a == 35) {
-          printf("35");
-        } else {
-          printf("nao 35");
-        }
-
-        // Comentario
-
-        a = 0;
-        while(a < 10) {
-          a = a + 1;
-          printf("a");
-        }
-        return 0;
     }
 ]]
 
@@ -33,7 +20,7 @@ local program = parser.parse(tokens)
 
 print('Program:')
 if not program then
-    print('Erro de sintaxe')
+  print('Erro de sintaxe')
 else
-    print(table.to_json(program))
+  print(table.to_json(program))
 end

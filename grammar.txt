@@ -12,7 +12,7 @@ C Grammar
 * statement ::= expression_statement | return_statement | variable_declaration | assignment_statement | if_statement | while_statement | for_statement
 * if_statement ::= 'if' '(' expression ')' statement | 'if' '(' expression ')' statement 'else' statement
 * while_statement ::= 'while' '(' expression ')' statement
-* for_statement ::= 'for' '(' [expression_statement] [expression] ';' [expression] ')' statement
+* for_statement ::= 'for' '(' [expression] ';' [expression] ';' [expression] ')' statement
 * expression_statement ::= expression ';'
 * return_statement ::= 'return' expression ';'
 * assignment_statement ::= identifier '=' expression ';'

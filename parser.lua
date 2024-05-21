@@ -1,12 +1,79 @@
 local lexer = require('lexer')
 local parser = {}
 
+---@alias var_type
+---| "int"
+---| "float"
+
+---@class Variable
+---@field name string
+---@field type var_type
+
+---@class Function
+---@field name string
+---@field return_type var_type
+---@field params Variable[]
+
+---@class Context
+---@field parent Context?
+---@field children Context[]
+---@field content {[string]: Variable | Function}
+
 ---@class ParserState
 ---@field tokens Token[] -- Lista de tokens gerada pelo Lexer
 ---@field index number -- Índice do token atual
+---@field context Context
 
 ---@class ASTNode
 ---@field type string
+
+---cria um novo contexto e faz com que ele seja o atual
+---@param state ParserState
+local function pushContext(state)
+  ---@type Context
+  local new_context = {
+    parent = state.context,
+    children = {},
+    content = {}
+  }
+
+  ---@type ParserState
+  local new_state = table.deep_copy(state)
+  table.insert(new_state.context.children, new_context)
+  new_state.context = new_context
+
+  return new_state
+end
+
+---Retorna o contexto para o contexto pai
+---Deve ser usado quando um contexto encerra
+---@param state any
+local function popContext(state)
+  ---@type ParserState
+  local new_state = table.deep_copy(state)
+  if new_state.context.parent == nil then
+    print("Erro: tentando acessar contexto inexistente (popContext com pai = nil)")
+    os.exit(1)
+  end
+
+  new_state.context = new_state.context.parent
+  return new_state
+end
+
+---Verifica se um símbolo existe no contexto atual ou algum superior
+---@param context Context
+---@param identifier string
+local function exists(context, identifier)
+  if context.content[identifier] then
+    return true
+  end
+
+  if context.parent then
+    return exists(context.parent, identifier)
+  end
+
+  return false
+end
 
 ---Retorna o token atual do parser
 ---@param state ParserState
@@ -416,7 +483,7 @@ function parse_logical_or_expression(state)
   }
 end
 
----for_statement ::= 'for' '(' [expression_statement] [expression_statement] [expression] ')' compound_statement
+---for_statement ::= 'for' '(' [expression] ';' [expression] ';' [expression] ')' compound_statement
 ---@param state ParserState
 ---@return ParserState, ASTNode?
 ---@nodiscard
@@ -434,7 +501,7 @@ function parse_for_statement(state)
     print('When parsing for statement:')
     print('\tExpected `(`, got ' .. error_token.type .. ' ' .. error_token.value)
     print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
-    assert(false)
+    os.exit(1)
     return state, nil
   end
 
@@ -454,7 +521,7 @@ function parse_for_statement(state)
     print('When parsing for statement:')
     print('\tExpected `)`, got ' .. error_token.type .. ' ' .. error_token.value)
     print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
-    assert(false)
+    os.exit(1)
     return state, nil
   end
 
@@ -490,7 +557,7 @@ function parse_while_statement(state)
     print('When parsing while statement:')
     print('\tExpected `(`, got ' .. error_token.type .. ' ' .. error_token.value)
     print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
-    assert(false)
+    os.exit(1)
     return state, nil
   end
 
@@ -507,7 +574,7 @@ function parse_while_statement(state)
     print('When parsing while statement:')
     print('\tExpected `)`, got ' .. error_token.type .. ' ' .. error_token.value)
     print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
-    assert(false)
+    os.exit(1)
     return state, nil
   end
 
@@ -614,6 +681,18 @@ function parse_variable_declaration(state)
     return state, nil
   end
 
+  if exists(state.context, identifier.value) then
+    print('Identifier `' .. identifier.value .. '` already used in current context')
+    os.exit(1)
+    return state, nil
+  end
+
+  print(table.to_json(type_specifier))
+  state.context.content[identifier.value] = {
+    name = identifier.value,
+    type = type_specifier.value
+  }
+
   return new_state, {
     type = 'variable_declaration',
     type_specifier = type_specifier,
@@ -638,7 +717,7 @@ function parse_expression_statement(state)
     print('when parsing expression statement:')
     print('\texpected `;`, got ' .. error_token.type .. ' ' .. error_token.value)
     print('\tat line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
-    assert(false)
+    os.exit(1)
     return state, nil
   end
 
@@ -662,7 +741,7 @@ function parse_return_statement(state)
     print('when parsing return statement:')
     print('\texpected `expression`, got ' .. error_token.type .. ' ' .. error_token.value)
     print('\tat line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
-    assert(false)
+    os.exit(1)
     return state, nil
   end
 
@@ -673,7 +752,7 @@ function parse_return_statement(state)
     print('when parsing return statement:')
     print('\texpected `;`, got ' .. error_token.type .. ' ' .. error_token.value)
     print('\tat line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
-    assert(false)
+    os.exit(1)
     return state, nil
   end
 
@@ -700,7 +779,7 @@ function parse_if_statement(state)
     print('When parsing if statement:')
     print('\tExpected `(`, got ' .. error_token.type .. ' ' .. error_token.value)
     print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
-    assert(false)
+    os.exit(1)
     return state, nil
   end
 
@@ -717,7 +796,7 @@ function parse_if_statement(state)
     print('When parsing if statement:')
     print('\tExpected `)`, got ' .. error_token.type .. ' ' .. error_token.value)
     print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
-    assert(false)
+    os.exit(1)
     return state, nil
   end
 
@@ -779,7 +858,7 @@ function parse_assignment_statement(state)
     print('When parsing assignment statement:')
     print('\tExpected `;`, got ' .. error_token.type .. ' ' .. error_token.value)
     print('\tAt line ' .. error_token.position.line .. ' column ' .. error_token.position.col)
-    assert(false)
+    os.exit(1)
     return state, nil
   end
 
@@ -877,11 +956,15 @@ function parse_compound_statement(state)
     return state, nil
   end
 
+  new_state = pushContext(new_state)
+
   local statement_list
   new_state, statement_list = parse_statement_list(new_state)
 
   local right_brace
   new_state, right_brace = expect(new_state, 'rbrace')
+
+  new_state = popContext(new_state)
 
   if not right_brace then
     return state, nil
@@ -1041,13 +1124,22 @@ end
 ---@return ASTNode?
 ---@nodiscard
 function parser.parse(tokens)
+  ---@type ParserState
   local state = {
     tokens = table.deep_copy(tokens),
-    index = 1
+    index = 1,
+    context = {
+      parent = nil,
+      children = {},
+      content = {}
+    }
   }
 
   local new_state, program = parse_declaration_list(state)
   local valid = get_current_token(new_state) == nil
+
+  print("Contexts: ")
+  print(table.to_json(new_state.context))
 
   if not valid then
     return nil
