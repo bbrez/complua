@@ -16,6 +16,7 @@ local parser = {}
 ---@field params Variable[]
 
 ---@class Context
+---@field name string
 ---@field parent Context?
 ---@field children Context[]
 ---@field content {[string]: Variable | Function}
@@ -30,20 +31,21 @@ local parser = {}
 
 ---cria um novo contexto e faz com que ele seja o atual
 ---@param state ParserState
-local function pushContext(state)
+---@param name string
+local function pushContext(state, name)
   ---@type Context
   local new_context = {
     parent = state.context,
     children = {},
-    content = {}
+    content = {},
+    name = name
   }
 
   ---@type ParserState
-  local new_state = table.deep_copy(state)
-  table.insert(new_state.context.children, new_context)
-  new_state.context = new_context
+  table.insert(state.context.children, new_context)
+  state.context = new_context
 
-  return new_state
+  return state
 end
 
 ---Retorna o contexto para o contexto pai
@@ -51,14 +53,54 @@ end
 ---@param state any
 local function popContext(state)
   ---@type ParserState
-  local new_state = table.deep_copy(state)
-  if new_state.context.parent == nil then
+  if state.context.parent == nil then
     print("Erro: tentando acessar contexto inexistente (popContext com pai = nil)")
     os.exit(1)
   end
 
-  new_state.context = new_state.context.parent
-  return new_state
+  state.context = state.context.parent
+  return state
+end
+
+---Converte os parâmetros para uma string
+---@param params Variable[]
+---@return string
+local function paramsString(params)
+  result = ""
+  for i, param in ipairs(params) do
+    result = result .. param.type .. " " .. param.name
+    if i < #params then
+      result = result .. ", "
+    end
+  end
+  return result
+end
+
+---Imprime o contexto atual
+---Uma função específica é necessária para imprimir o contexto pois a recursão pode causar um loop infinito
+---@param ctx Context
+local function printContext(ctx)
+  for key, value in pairs(ctx.content) do
+    if value.type == 'function' then
+      io.write(("%15s"):format(ctx.name), ("%15s"):format(value.name), ("%15s"):format(value.type),
+        ("%15s"):format(value.return_type),
+        ("%30s"):format(paramsString(value.params)), "\n")
+    else
+      io.write(("%15s"):format(ctx.name), ("%15s"):format(value.name), ("%15s"):format(value.type), "\n")
+    end
+  end
+
+  for _, child in ipairs(ctx.children) do
+    printContext(child)
+  end
+end
+
+local function printContextTable(global_ctx)
+  -- io.write(("Contexto"):format("%15s"), ("Identificador"):format("%15s"), ("Tipo"):format("%15s"),
+  --   ("Retorno"):format("%15s"), ("Parâmetros"):format("%15s"), "\n")
+  io.write(("%15s"):format("Contexto"), ("%15s"):format("Identificador"), ("%15s"):format("Tipo"),
+    ("%15s"):format("Retorno"), ("%30s"):format("Parâmetros"), "\n")
+  printContext(global_ctx)
 end
 
 
@@ -563,7 +605,7 @@ function parse_for_statement(state)
   end
 
   local compound_statement
-  new_state, compound_statement = parse_compound_statement(new_state)
+  new_state, compound_statement = parse_compound_statement(new_state, new_state.context.name .. '_for')
   if not compound_statement then
     return state, nil
   end
@@ -616,7 +658,7 @@ function parse_while_statement(state)
   end
 
   local compound_statement
-  new_state, compound_statement = parse_compound_statement(new_state)
+  new_state, compound_statement = parse_compound_statement(new_state, new_state.context.name .. '_while')
   if not compound_statement then
     return state, nil
   end
@@ -837,7 +879,7 @@ function parse_if_statement(state)
   end
 
   local compound_statement
-  new_state, compound_statement = parse_compound_statement(new_state)
+  new_state, compound_statement = parse_compound_statement(new_state, new_state.context.name .. '_if')
   if not compound_statement then
     return state, nil
   end
@@ -846,7 +888,7 @@ function parse_if_statement(state)
   new_state, else_keyword = expect(new_state, 'keyword')
   if else_keyword and else_keyword.value == 'else' then
     local else_compound_statement
-    new_state, else_compound_statement = parse_compound_statement(new_state)
+    new_state, else_compound_statement = parse_compound_statement(new_state, new_state.context.name .. '_else')
     if not else_compound_statement then
       return state, nil
     end
@@ -984,15 +1026,16 @@ end
 
 ---compound_statement ::= '{' statement_list '}'
 ---@param state ParserState
+---@param name string -- nome do contexto
 ---@return ParserState, ASTNode?
 ---@nodiscard
-function parse_compound_statement(state)
+function parse_compound_statement(state, name)
   local new_state, left_brace = expect(state, 'lbrace')
   if not left_brace then
     return state, nil
   end
 
-  new_state = pushContext(new_state)
+  new_state = pushContext(new_state, name)
 
   local statement_list
   new_state, statement_list = parse_statement_list(new_state)
@@ -1096,7 +1139,7 @@ function parse_function_declaration(state)
   end
 
   local compound_statement
-  new_state, compound_statement = parse_compound_statement(new_state)
+  new_state, compound_statement = parse_compound_statement(new_state, identifier.value)
 
   if existsCurrent(new_state.context, identifier.value) then
     print('Identificador `' .. identifier.value .. '` já existe no contexto atual')
@@ -1107,7 +1150,8 @@ function parse_function_declaration(state)
   local params = extractArgs(parameter_list)
   new_state.context.content[identifier.value] = {
     name = identifier.value,
-    type = type_specifier.value,
+    type = "function",
+    return_type = type_specifier.value,
     params = params
   }
 
@@ -1180,20 +1224,23 @@ function parser.parse(tokens)
     context = {
       parent = nil,
       children = {},
-      content = {}
+      content = {},
+      name = 'global'
     }
   }
 
   local new_state, program = parse_declaration_list(state)
   local valid = get_current_token(new_state) == nil
 
-  print("Contexts: ")
-  print(table.to_json(new_state.context))
+  -- print("Contexts: ")
+  -- print(table.to_json(new_state.context))
 
   if not valid then
     return nil
     -- error('unexpected token' .. get_current_token(new_state).type)
   end
+
+  printContextTable(new_state.context)
 
   return program
 end
