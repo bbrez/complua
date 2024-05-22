@@ -61,6 +61,8 @@ end
 lexer.keywords = {
   "int",
   "float",
+  "char",
+  "void",
   "return",
   "if",
   "else",

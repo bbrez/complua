@@ -36,5 +36,5 @@ local program = parser.parse(tokens)
 -- if not program then
 --   print('Erro de sintaxe')
 -- else
---   print(table.to_json(program))
+-- print(table.to_json(program))
 -- end

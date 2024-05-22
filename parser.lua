@@ -4,6 +4,8 @@ local parser = {}
 ---@alias var_type
 ---| "int"
 ---| "float"
+---| "char"
+---| "void"
 
 ---@class Variable
 ---@field name string
@@ -67,7 +69,7 @@ end
 ---@param params Variable[]
 ---@return string
 local function paramsString(params)
-  result = ""
+  local result = ""
   for i, param in ipairs(params) do
     result = result .. param.var_type .. " " .. param.name
     if i < #params then

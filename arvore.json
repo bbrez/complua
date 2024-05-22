@@ -1,0 +1,328 @@
+{
+    "type": "declaration_list",
+    "declarations": [
+        {
+            "identifier": {
+                "type": "identifier",
+                "value": "soma"
+            },
+            "type_specifier": {
+                "type": "type_specifier",
+                "value": "int"
+            },
+            "body": {
+                "type": "compound_statement",
+                "statements": {
+                    "type": "statement_list",
+                    "statements": [
+                        {
+                            "identifier": {
+                                "type": "identifier",
+                                "value": "resultado"
+                            },
+                            "type": "variable_declaration",
+                            "type_specifier": {
+                                "type": "type_specifier",
+                                "value": "int"
+                            }
+                        },
+                        {
+                            "expression": {
+                                "right": {
+                                    "type": "identifier",
+                                    "value": "y"
+                                },
+                                "left": {
+                                    "type": "identifier",
+                                    "value": "x"
+                                },
+                                "type": "additive_expression",
+                                "operator": "+"
+                            },
+                            "type": "assignment_statement",
+                            "identifier": {
+                                "type": "identifier",
+                                "value": "resultado"
+                            }
+                        },
+                        {
+                            "type": "return_statement",
+                            "expression": {
+                                "type": "identifier",
+                                "value": "resultado"
+                            }
+                        }
+                    ]
+                }
+            },
+            "type": "function_declaration",
+            "parameters": {
+                "type": "parameter_list",
+                "parameters": [
+                    {
+                        "identifier": {
+                            "type": "identifier",
+                            "value": "x"
+                        },
+                        "type": "parameter",
+                        "type_specifier": {
+                            "type": "type_specifier",
+                            "value": "int"
+                        }
+                    },
+                    {
+                        "identifier": {
+                            "type": "identifier",
+                            "value": "y"
+                        },
+                        "type": "parameter",
+                        "type_specifier": {
+                            "type": "type_specifier",
+                            "value": "int"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "identifier": {
+                "type": "identifier",
+                "value": "main"
+            },
+            "type_specifier": {
+                "type": "type_specifier",
+                "value": "int"
+            },
+            "body": {
+                "type": "compound_statement",
+                "statements": {
+                    "type": "statement_list",
+                    "statements": [
+                        {
+                            "identifier": {
+                                "type": "identifier",
+                                "value": "a"
+                            },
+                            "type": "variable_declaration",
+                            "type_specifier": {
+                                "type": "type_specifier",
+                                "value": "int"
+                            }
+                        },
+                        {
+                            "identifier": {
+                                "type": "identifier",
+                                "value": "b"
+                            },
+                            "type": "variable_declaration",
+                            "type_specifier": {
+                                "type": "type_specifier",
+                                "value": "int"
+                            }
+                        },
+                        {
+                            "update": {
+                                "expression": {
+                                    "expression": {
+                                        "type": "identifier",
+                                        "value": "a"
+                                    },
+                                    "type": "unary_expression",
+                                    "operator": "+"
+                                },
+                                "type": "unary_expression",
+                                "operator": "+"
+                            },
+                            "body": {
+                                "type": "compound_statement",
+                                "statements": {
+                                    "type": "statement_list",
+                                    "statements": [
+                                        {
+                                            "expression": {
+                                                "right": {
+                                                    "type": "int_literal",
+                                                    "value": "1"
+                                                },
+                                                "left": {
+                                                    "type": "identifier",
+                                                    "value": "a"
+                                                },
+                                                "type": "additive_expression",
+                                                "operator": "+"
+                                            },
+                                            "type": "assignment_statement",
+                                            "identifier": {
+                                                "type": "identifier",
+                                                "value": "b"
+                                            }
+                                        },
+                                        {
+                                            "else_body": {
+                                                "type": "compound_statement",
+                                                "statements": {
+                                                    "type": "statement_list",
+                                                    "statements": [
+                                                        {
+                                                            "type": "printf_call",
+                                                            "arguments": {
+                                                                "type": "argument_list",
+                                                                "arguments": [
+                                                                    {
+                                                                        "type": "string_literal",
+                                                                        "value": "Soma de %d com %d eh %d (impar)\n"
+                                                                    },
+                                                                    {
+                                                                        "type": "identifier",
+                                                                        "value": "a"
+                                                                    },
+                                                                    {
+                                                                        "type": "identifier",
+                                                                        "value": "b"
+                                                                    },
+                                                                    {
+                                                                        "identifier": {
+                                                                            "type": "identifier",
+                                                                            "value": "soma"
+                                                                        },
+                                                                        "type": "function_call",
+                                                                        "arguments": {
+                                                                            "type": "argument_list",
+                                                                            "arguments": [
+                                                                                {
+                                                                                    "type": "identifier",
+                                                                                    "value": "a"
+                                                                                },
+                                                                                {
+                                                                                    "type": "identifier",
+                                                                                    "value": "b"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "condition": {
+                                                "right": {
+                                                    "right": {
+                                                        "type": "int_literal",
+                                                        "value": "0"
+                                                    },
+                                                    "left": {
+                                                        "type": "int_literal",
+                                                        "value": "1"
+                                                    },
+                                                    "type": "equality_expression",
+                                                    "operator": "=="
+                                                },
+                                                "left": {
+                                                    "type": "identifier",
+                                                    "value": "a"
+                                                },
+                                                "type": "logical_and_expression"
+                                            },
+                                            "type": "if_statement",
+                                            "body": {
+                                                "type": "compound_statement",
+                                                "statements": {
+                                                    "type": "statement_list",
+                                                    "statements": [
+                                                        {
+                                                            "type": "printf_call",
+                                                            "arguments": {
+                                                                "type": "argument_list",
+                                                                "arguments": [
+                                                                    {
+                                                                        "type": "string_literal",
+                                                                        "value": "Soma de %d com %d eh %d (par)\n"
+                                                                    },
+                                                                    {
+                                                                        "type": "identifier",
+                                                                        "value": "a"
+                                                                    },
+                                                                    {
+                                                                        "type": "identifier",
+                                                                        "value": "b"
+                                                                    },
+                                                                    {
+                                                                        "identifier": {
+                                                                            "type": "identifier",
+                                                                            "value": "soma"
+                                                                        },
+                                                                        "type": "function_call",
+                                                                        "arguments": {
+                                                                            "type": "argument_list",
+                                                                            "arguments": [
+                                                                                {
+                                                                                    "type": "identifier",
+                                                                                    "value": "a"
+                                                                                },
+                                                                                {
+                                                                                    "type": "identifier",
+                                                                                    "value": "b"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "init": {
+                                "expression": {
+                                    "type": "int_literal",
+                                    "value": "0"
+                                },
+                                "type": "assignment_statement",
+                                "identifier": {
+                                    "type": "identifier",
+                                    "value": "a"
+                                }
+                            },
+                            "type": "for_statement",
+                            "condition": {
+                                "right": {
+                                    "type": "int_literal",
+                                    "value": "10"
+                                },
+                                "left": {
+                                    "type": "identifier",
+                                    "value": "a"
+                                },
+                                "type": "relational_expression",
+                                "operator": "<"
+                            }
+                        }
+                    ]
+                }
+            },
+            "type": "function_declaration",
+            "parameters": {
+                "type": "parameter_list",
+                "parameters": [
+                    {
+                        "identifier": {
+                            "type": "identifier",
+                            "value": "argc"
+                        },
+                        "type": "parameter",
+                        "type_specifier": {
+                            "type": "type_specifier",
+                            "value": "int"
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
