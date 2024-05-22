@@ -7,7 +7,8 @@ local parser = {}
 
 ---@class Variable
 ---@field name string
----@field type var_type
+---@field type "variable"
+---@field var_type var_type
 
 ---@class Function
 ---@field name string
@@ -68,7 +69,7 @@ end
 local function paramsString(params)
   result = ""
   for i, param in ipairs(params) do
-    result = result .. param.type .. " " .. param.name
+    result = result .. param.var_type .. " " .. param.name
     if i < #params then
       result = result .. ", "
     end
@@ -86,7 +87,8 @@ local function printContext(ctx)
         ("%15s"):format(value.return_type),
         ("%30s"):format(paramsString(value.params)), "\n")
     else
-      io.write(("%15s"):format(ctx.name), ("%15s"):format(value.name), ("%15s"):format(value.type), "\n")
+      io.write(("%15s"):format(ctx.name), ("%15s"):format(value.name), ("%15s"):format(value.type),
+        ("%15s"):format(value.var_type), "\n")
     end
   end
 
@@ -136,7 +138,8 @@ local function extractArgs(args)
   for _, arg in ipairs(args.parameters) do
     table.insert(extracted, {
       name = arg.identifier.value,
-      type = arg.type_specifier.value
+      type = "variable",
+      var_type = arg.type_specifier.value
     })
   end
   return extracted
@@ -311,6 +314,13 @@ function parse_function_call(state)
     return state, nil
   end
 
+  if identifier.value == 'printf' then --- Tratamento especial para a função printf
+    return new_state, {
+      type = 'printf_call',
+      arguments = argument_list
+    }
+  end
+
   if not existsAll(state.context, identifier.value) then
     print('Identificador `' .. identifier.value .. '` não existe no contexto atual')
     os.exit(1)
@@ -319,6 +329,14 @@ function parse_function_call(state)
 
   if existsAll(state.context, identifier.value).type ~= 'function' then
     print('Identificador `' .. identifier.value .. '` não é uma função')
+    os.exit(1)
+    return state, nil
+  end
+
+  if #argument_list.arguments ~= #existsAll(state.context, identifier.value).params then
+    print('Número de argumentos inválido para a função `' .. identifier.value .. '`')
+    print('Esperado: ' .. #existsAll(state.context, identifier.value).params .. ' argumentos')
+    print('Recebido: ' .. #argument_list.arguments .. ' argumentos')
     os.exit(1)
     return state, nil
   end
@@ -768,7 +786,8 @@ function parse_variable_declaration(state)
 
   new_state.context.content[identifier.value] = {
     name = identifier.value,
-    type = type_specifier.value
+    type = "variable",
+    var_type = type_specifier.value
   }
 
   return new_state, {
@@ -1095,6 +1114,12 @@ function parse_parameter_list(state)
     local parameter
     state, parameter = parse_parameter(state)
     table.insert(parameters, parameter)
+
+    local comma
+    state, comma = expect(state, 'comma')
+    if not comma then
+      break
+    end
   end
 
   return state, {
@@ -1224,7 +1249,25 @@ function parser.parse(tokens)
     context = {
       parent = nil,
       children = {},
-      content = {},
+      content = {
+        ["printf"] = {
+          name = 'printf',
+          type = 'function',
+          return_type = 'int',
+          params = {
+            {
+              name = 'format',
+              type = "variable",
+              var_type = 'string'
+            },
+            {
+              name = 'args',
+              type = "variable",
+              var_type = 'string'
+            },
+          }
+        }
+      },
       name = 'global'
     }
   }

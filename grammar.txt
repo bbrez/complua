@@ -3,8 +3,8 @@ C Grammar
 * program ::= declaration_list
 * declaration_list ::= declaration | declaration_list declaration
 * declaration ::= variable_declaration | function_declaration
-* variable_declaration ::= type_specifier identifier ';'
-* function_declaration ::= type_specifier identifier '(' [parameter_list] ')' compound_statement
+* variable_declaration ::= type_specifier identifier ';' /// [variable_declaration.var_type = type_specifier, variable_declaration.name = identifier]
+* function_declaration ::= type_specifier identifier '(' [parameter_list] ')' compound_statement /// [function_declaration.return_type = type_specifier, function_declaration.name = identifier, function_declaration.parameters = parameter_list]
 * parameter_list ::= parameter | parameter_list ',' parameter
 * parameter ::= type_specifier identifier
 * compound_statement ::= '{' statement_list '}'
